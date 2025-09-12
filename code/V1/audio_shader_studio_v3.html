@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Shader Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        .header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .button.active {
+            background: rgba(0, 122, 255, 0.6);
+            border-color: rgba(0, 122, 255, 0.8);
+        }
+
+        .button.primary {
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            border: none;
+        }
+
+        .slider {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            margin: 10px 0;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007AFF;
+            cursor: pointer;
+        }
+
+        .shader-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .shader-item {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .shader-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .shader-item.active {
+            background: rgba(0, 122, 255, 0.3);
+            border-color: rgba(0, 122, 255, 0.5);
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+
+        .canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #shaderCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .toggle-sidebar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 101;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .presentation-mode .sidebar,
+        .presentation-mode .toggle-sidebar {
+            display: none;
+        }
+
+        .presentation-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 200;
+        }
+
+        .presentation-overlay h2 {
+            margin-bottom: 16px;
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        .presentation-overlay p {
+            color: #888;
+            margin-bottom: 24px;
+        }
+
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .audio-input {
+            display: none;
+        }
+
+        .advanced-waveform {
+            height: 120px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .waveform-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .frequency-bars {
+            display: flex;
+            height: 60px;
+            align-items: end;
+            gap: 1px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+
+        .freq-bar {
+            flex: 1;
+            background: linear-gradient(to top, #007AFF, #5856D6);
+            border-radius: 1px;
+            min-height: 2px;
+            transition: height 0.1s ease;
+        }
+
+        .audio-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 8px 0;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .audio-info span {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 280px;
+            }
+            
+            .toggle-sidebar {
+                top: 10px;
+                left: 10px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="app" id="app">
+        <div class="sidebar" id="sidebar">
+            <div class="header">
+                <div class="logo">Audio Shader Studio</div>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <div class="control-label">Audio Mode</div>
+                    <button class="button active" onclick="setAudioMode('normal')">Normal</button>
+                    <button class="button" onclick="setAudioMode('music')">Music</button>
+                    <button class="button" onclick="setAudioMode('voice')">Voice</button>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Audio Source</div>
+                    <input type="file" id="audioFile" class="audio-input" accept="audio/*" onchange="loadAudioFile(this)">
+                    <button class="button" onclick="document.getElementById('audioFile').click()">Load Audio File</button>
+                    <button class="button" onclick="startMicrophone()">Use Microphone</button>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Playback</div>
+                    <div class="audio-controls">
+                        <button class="button" onclick="togglePlayback()">Play/Pause</button>
+                        <button class="button" onclick="stopPlayback()">Stop</button>
+                    </div>
+                    <input type="range" class="slider" id="volumeSlider" min="0" max="100" value="50" oninput="setVolume(this.value)">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Advanced Audio Visualization</div>
+                    <div class="advanced-waveform">
+                        <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+                    </div>
+                    <div class="frequency-bars" id="frequencyBars"></div>
+                    <div class="audio-info" id="audioInfo">
+                        <span>Beat: <span id="beatInfo">-</span></span>
+                        <span>Onset: <span id="onsetInfo">-</span></span>
+                        <span>Energy: <span id="energyInfo">-</span></span>
+                        <span>Centroid: <span id="centroidInfo">-</span></span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Shader Library</div>
+                    <div class="shader-list" id="shaderList"></div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Shader Editor</div>
+                    <textarea id="shaderCode" placeholder="Enter fragment shader code here..."></textarea>
+                    <button class="button primary" onclick="compileShader()">Compile Shader</button>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Import/Export</div>
+                    <input type="file" id="shaderFile" class="audio-input" accept=".glsl,.frag,.txt" onchange="importShader(this)">
+                    <button class="button" onclick="document.getElementById('shaderFile').click()">Import Shader</button>
+                    <button class="button" onclick="exportShader()">Export Shader</button>
+                    <button class="button" onclick="importFromClipboard()">From Clipboard</button>
+                    <button class="button" onclick="exportToClipboard()">To Clipboard</button>
+                </div>
+
+                <div class="control-group">
+                    <button class="button primary" onclick="enterPresentationMode()">Presentation Mode</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+            <div class="canvas-container">
+                <canvas id="shaderCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="presentation-overlay hidden" id="presentationOverlay">
+            <h2>Presentation Mode</h2>
+            <p>Click anywhere, press spacebar, or touch to start audio</p>
+            <button class="button primary" onclick="exitPresentationMode()">Exit Presentation</button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let gl, canvas, shaderProgram, audioTexture;
+        let audioContext, analyser, microphone, audioSource, audioBuffer, gainNode;
+        let frequencyData, timeData, previousFrequencyData;
+        let isPlaying = false;
+        let isPresentationMode = false;
+        let currentShader = '';
+        let audioMode = 'normal';
+        let sidebarVisible = true;
+        let waveformCanvas, waveformCtx;
+
+        // Advanced audio analysis
+        let spectralCentroid = 0;
+        let energyLevel = 0;
+        let beatDetected = 0;
+        let onsetDetected = 0;
+        let beatHistory = [];
+        let energyHistory = [];
+
+        // Demo shaders library with advanced patterns
+        const demoShaders = {
+            'Basic Wave': `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_spectralCentroid;
+uniform float u_energyLevel;
+uniform float u_beatDetected;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec3 color = vec3(0.0);
+    
+    float wave = sin(uv.x * 10.0 + u_time * 2.0 + u_beatDetected * 3.14) * u_audioLevel;
+    float energy = u_energyLevel * 0.5 + 0.5;
+    
+    color += vec3(wave * energy, uv.y * u_spectralCentroid, sin(u_time + u_trebleLevel * 5.0) * 0.5 + 0.5);
+    
+    gl_FragColor = vec4(color, 1.0);
+}`,
+
+            'Audio Spectrum Bars': `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_spectralCentroid;
+uniform float u_energyLevel;
+uniform sampler2D u_frequencyTexture;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    
+    // Sample frequency data from texture
+    float freq = texture2D(u_frequencyTexture, vec2(uv.x, 0.5)).r;
+    
+    // Create spectrum bars with color mapping
+    vec3 color = vec3(0.0);
+    float barHeight = freq * u_energyLevel * 2.0;
+    
+    if (uv.y < barHeight) {
+        // Color based on frequency range
+        if (uv.x < 0.33) {
+            // Bass - Red to Yellow
+            color = mix(vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 0.0), uv.y / barHeight);
+        } else if (uv.x < 0.66) {
+            // Mids - Yellow to Magenta
+            color = mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 1.0), uv.y / barHeight);
+        } else {
+            // Highs - Magenta to Cyan
+            color = mix(vec3(1.0, 0.0, 1.0), vec3(0.0, 1.0, 1.0), uv.y / barHeight);
+        }
+        
+        // Add brightness based on spectral centroid
+        color *= (0.7 + u_spectralCentroid * 0.3);
+    }
+    
+    // Add subtle background
+    color += vec3(0.05, 0.05, 0.1) * (1.0 - uv.y);
+    
+    gl_FragColor = vec4(color, 1.0);
+}`,
+
+            'Circular Waveform': `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_beatDetected;
+uniform float u_onsetDetected;
+uniform sampler2D u_frequencyTexture;
+
+void main() {
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+    
+    float angle = atan(uv.y, uv.x) + 3.14159;
+    float radius = length(uv);
+    
+    // Sample frequency based on angle
+    float freqSample = texture2D(u_frequencyTexture, vec2(angle / (2.0 * 3.14159), 0.5)).r;
+    
+    // Create circular waveform
+    float waveRadius = 0.3 + freqSample * u_audioLevel * 0.4;
+    float thickness = 0.02 + u_beatDetected * 0.01;
+    
+    float wave = smoothstep(waveRadius - thickness, waveRadius, radius) - 
+                smoothstep(waveRadius, waveRadius + thickness, radius);
+    
+    // Color based on angle and audio features
+    vec3 color = vec3(0.0);
+    if (wave > 0.0) {
+        float hue = angle / (2.0 * 3.14159) + u_time * 0.1;
+        color = vec3(
+            sin(hue * 6.28) * 0.5 + 0.5,
+            sin(hue * 6.28 + 2.09) * 0.5 + 0.5,
+            sin(hue * 6.28 + 4.19) * 0.5 + 0.5
+        ) * (0.7 + u_onsetDetected * 0.3);
+    }
+    
+    // Add center glow
+    float centerGlow = exp(-radius * 3.0) * u_bassLevel;
+    color += vec3(centerGlow * 0.2, centerGlow * 0.4, centerGlow * 0.8);
+    
+    gl_FragColor = vec4(color, 1.0);
+}`,
+
+            'Spiral Spectrum': `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_spectralCentroid;
+uniform float u_energyLevel;
+uniform sampler2D u_frequencyTexture;
+
+void main() {
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+    
+    float angle = atan(uv.y, uv.x) + 3.14159;
+    float radius = length(uv);
+    
+    // Archimedean spiral parameters
+    float spiralTightness = 0.5 + u_spectralCentroid * 0.3;
+    float spiralRadius = angle * spiralTightness * 0.1;
+    
+    // Sample frequency data along spiral
+    float freqIndex = mod(spiralRadius * 10.0, 1.0);
+    float freq = texture2D(u_frequencyTexture, vec2(freqIndex, 0.5)).r;
+    
+    // Distance to spiral
+    float spiralDist = abs(radius - spiralRadius);
+    float spiralWidth = 0.015 + freq * u_energyLevel * 0.02;
+    
+    float spiral = smoothstep(spiralWidth, 0.0, spiralDist);
+    
+    // Color based on frequency and position
+    vec3 color = vec3(0.0);
+    if (spiral > 0.0) {
+        float colorPhase = freqIndex + u_time * 0.2;
+        color = vec3(
+            sin(colorPhase * 6.28) * 0.4 + 0.6,
+            sin(colorPhase * 6.28 + 2.09) * 0.4 + 0.6,
+            sin(colorPhase * 6.28 + 4.19) * 0.4 + 0.6
+        ) * spiral * (0.8 + freq * 0.2);
+    }
+    
+    // Add radial gradient background
+    color += vec3(0.05, 0.02, 0.1) * (1.0 - radius);
+    
+    gl_FragColor = vec4(color, 1.0);
+}`,
+
+            'Reactive Crystals': `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_beatDetected;
+uniform float u_onsetDetected;
+uniform float u_energyLevel;
+
+void main() {
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+    
+    float d = length(uv);
+    float angle = atan(uv.y, uv.x);
+    
+    // Create crystalline structure
+    float crystal = 0.0;
+    for (int i = 0; i < 6; i++) {
+        float a = float(i) * 1.047 + u_time * 0.1; // 60 degree increments
+        vec2 dir = vec2(cos(a), sin(a));
+        float projection = dot(uv, dir);
+        
+        float segmentLength = 0.2 + u_bassLevel * 0.3;
+        float thickness = 0.02 + u_trebleLevel * 0.01;
+        
+        if (projection > 0.0 && projection < segmentLength) {
+            float dist = abs(dot(uv, vec2(-sin(a), cos(a))));
+            crystal += smoothstep(thickness, 0.0, dist);
+        }
+    }
+    
+    // Central core
+    float core = smoothstep(0.08 + u_onsetDetected * 0.02, 0.04, d);
+    crystal += core;
+    
+    // Color based on audio features
+    vec3 color = vec3(0.0);
+    if (crystal > 0.0) {
+        float colorShift = u_time * 0.5 + u_beatDetected * 3.14159;
+        color = vec3(
+            sin(colorShift) * 0.3 + 0.7,
+            sin(colorShift + 2.09) * 0.3 + 0.7,
+            sin(colorShift + 4.19) * 0.3 + 0.7
+        ) * crystal * (0.6 + u_energyLevel * 0.4);
+    }
+    
+    gl_FragColor = vec4(color, 1.0);
+}`,
+
+            'Flowing Lines': `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_spectralCentroid;
+uniform float u_energyLevel;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec3 color = vec3(0.0);
+    
+    // Multiple flowing sine waves
+    for (int i = 0; i < 8; i++) {
+        float fi = float(i);
+        
+        float frequency = 2.0 + fi * 0.5;
+        float amplitude = 0.1 + u_audioLevel * 0.2;
+        float phase = u_time * (1.0 + fi * 0.3) + fi * 0.5;
+        
+        float y = 0.5 + sin(uv.x * frequency + phase) * amplitude;
+        float thickness = 0.005 + u_energyLevel * 0.003;
+        
+        float line = smoothstep(thickness, 0.0, abs(uv.y - y));
+        
+        // Color based on line index and spectral centroid
+        vec3 lineColor = vec3(
+            sin(fi * 0.8 + u_spectralCentroid * 2.0) * 0.5 + 0.5,
+            sin(fi * 0.8 + u_spectralCentroid * 2.0 + 2.09) * 0.5 + 0.5,
+            sin(fi * 0.8 + u_spectralCentroid * 2.0 + 4.19) * 0.5 + 0.5
+        );
+        
+        color += lineColor * line * (0.3 + u_trebleLevel * 0.4);
+    }
+    
+    gl_FragColor = vec4(color, 1.0);
+}`
+        };
+
+        // Initialize the application
+        function init() {
+            canvas = document.getElementById('shaderCanvas');
+            gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            
+            if (!gl) {
+                alert('WebGL not supported');
+                return;
+            }
+
+            // Initialize waveform canvas
+            waveformCanvas = document.getElementById('waveformCanvas');
+            waveformCtx = waveformCanvas.getContext('2d');
+            
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            initAudio();
+            createAudioTexture();
+            populateShaderList();
+            loadShader('Basic Wave');
+            
+            // Set up presentation mode event listeners
+            document.addEventListener('keydown', handleKeyDown);
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('touchstart', handleCanvasClick);
+            
+            animate();
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            
+            // Resize waveform canvas
+            const waveRect = waveformCanvas.getBoundingClientRect();
+            waveformCanvas.width = waveRect.width * window.devicePixelRatio;
+            waveformCanvas.height = waveRect.height * window.devicePixelRatio;
+            waveformCanvas.style.width = waveRect.width + 'px';
+            waveformCanvas.style.height = waveRect.height + 'px';
+            waveformCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (error) {
+                alert('Web Audio API not supported');
+                return;
+            }
+
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 512;
+            frequencyData = new Uint8Array(analyser.frequencyBinCount);
+            previousFrequencyData = new Uint8Array(analyser.frequencyBinCount);
+            timeData = new Uint8Array(analyser.fftSize);
+            
+            // Create gain node for volume control
+            gainNode = audioContext.createGain();
+            gainNode.connect(audioContext.destination);
+            
+            createFrequencyBars();
+        }
+
+        function createAudioTexture() {
+            audioTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, audioTexture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 256, 1, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, null);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+
+        function updateAudioTexture() {
+            if (!audioTexture || !frequencyData) return;
+            
+            gl.bindTexture(gl.TEXTURE_2D, audioTexture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, frequencyData.length, 1, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, frequencyData);
+        }
+
+        function createFrequencyBars() {
+            const container = document.getElementById('frequencyBars');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < 32; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'freq-bar';
+                container.appendChild(bar);
+            }
+        }
+
+        function analyzeAudioFeatures() {
+            if (!analyser) return;
+            
+            analyser.getByteFrequencyData(frequencyData);
+            analyser.getByteTimeDomainData(timeData);
+            
+            // Calculate spectral centroid
+            let weightedSum = 0;
+            let magnitudeSum = 0;
+            for (let i = 0; i < frequencyData.length; i++) {
+                weightedSum += i * frequencyData[i];
+                magnitudeSum += frequencyData[i];
+            }
+            spectralCentroid = magnitudeSum > 0 ? (weightedSum / magnitudeSum) / frequencyData.length : 0;
+            
+            // Calculate energy level
+            let energy = 0;
+            for (let i = 0; i < frequencyData.length; i++) {
+                energy += frequencyData[i] * frequencyData[i];
+            }
+            energyLevel = Math.sqrt(energy / frequencyData.length) / 255.0;
+            
+            // Beat detection using energy history
+            energyHistory.push(energyLevel);
+            if (energyHistory.length > 10) energyHistory.shift();
+            
+            let avgEnergy = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
+            beatDetected = energyLevel > avgEnergy * 1.3 ? 1.0 : 0.0;
+            
+            // Onset detection using spectral flux
+            let spectralFlux = 0;
+            for (let i = 0; i < frequencyData.length; i++) {
+                let diff = frequencyData[i] - previousFrequencyData[i];
+                if (diff > 0) spectralFlux += diff;
+            }
+            onsetDetected = spectralFlux > 1000 ? 1.0 : 0.0;
+            
+            // Store previous frame for next comparison
+            previousFrequencyData.set(frequencyData);
+            
+            // Update UI info
+            updateAudioInfo();
+        }
+
+        function updateAudioInfo() {
+            document.getElementById('beatInfo').textContent = beatDetected > 0.5 ? '●' : '○';
+            document.getElementById('onsetInfo').textContent = onsetDetected > 0.5 ? '●' : '○';
+            document.getElementById('energyInfo').textContent = (energyLevel * 100).toFixed(0) + '%';
+            document.getElementById('centroidInfo').textContent = (spectralCentroid * 100).toFixed(0) + '%';
+        }
+
+        function updateFrequencyBars() {
+            if (!analyser) return;
+            
+            const bars = document.querySelectorAll('.freq-bar');
+            for (let i = 0; i < bars.length; i++) {
+                const value = frequencyData[i * 8] / 255.0;
+                bars[i].style.height = (value * 100) + '%';
+            }
+        }
+
+        function drawAdvancedWaveform() {
+            if (!waveformCtx || !timeData) return;
+            
+            const width = waveformCanvas.width / window.devicePixelRatio;
+            const height = waveformCanvas.height / window.devicePixelRatio;
+            
+            waveformCtx.clearRect(0, 0, width, height);
+            
+            // Draw frequency spectrum
+            waveformCtx.fillStyle = 'rgba(0, 122, 255, 0.1)';
+            const barWidth = width / frequencyData.length;
+            for (let i = 0; i < frequencyData.length; i++) {
+                const barHeight = (frequencyData[i] / 255.0) * height * 0.7;
+                waveformCtx.fillRect(i * barWidth, height - barHeight, barWidth, barHeight);
+            }
+            
+            // Draw waveform overlay
+            waveformCtx.strokeStyle = '#00AAFF';
+            waveformCtx.lineWidth = 2;
+            waveformCtx.beginPath();
+            
+            const sliceWidth = width / timeData.length;
+            let x = 0;
+            
+            for (let i = 0; i < timeData.length; i++) {
+                const v = timeData[i] / 128.0;
+                const y = v * height * 0.3 + height * 0.15;
+                
+                if (i === 0) {
+                    waveformCtx.moveTo(x, y);
+                } else {
+                    waveformCtx.lineTo(x, y);
+                }
+                x += sliceWidth;
+            }
+            
+            waveformCtx.stroke();
+            
+            // Draw beat indicator
+            if (beatDetected > 0.5) {
+                waveformCtx.fillStyle = 'rgba(255, 100, 100, 0.6)';
+                waveformCtx.fillRect(0, 0, width, 4);
+            }
+            
+            // Draw onset indicator
+            if (onsetDetected > 0.5) {
+                waveformCtx.fillStyle = 'rgba(100, 255, 100, 0.6)';
+                waveformCtx.fillRect(0, height - 4, width, 4);
+            }
+        }
+
+        function populateShaderList() {
+            const list = document.getElementById('shaderList');
+            list.innerHTML = '';
+            
+            Object.keys(demoShaders).forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'shader-item';
+                item.textContent = name;
+                item.onclick = () => loadShader(name);
+                list.appendChild(item);
+            });
+        }
+
+        function loadShader(name) {
+            if (demoShaders[name]) {
+                currentShader = name;
+                document.getElementById('shaderCode').value = demoShaders[name];
+                compileShader();
+                
+                // Update active state
+                document.querySelectorAll('.shader-item').forEach(item => {
+                    item.classList.toggle('active', item.textContent === name);
+                });
+            }
+        }
+
+        function compileShader() {
+            const fragmentShaderSource = document.getElementById('shaderCode').value;
+            
+            const vertexShaderSource = `
+                attribute vec4 position;
+                void main() {
+                    gl_Position = position;
+                }
+            `;
+            
+            const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
+            const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
+            
+            if (shaderProgram) {
+                gl.deleteProgram(shaderProgram);
+            }
+            
+            shaderProgram = createProgram(vertexShader, fragmentShader);
+            
+            if (shaderProgram) {
+                // Create geometry
+                const positions = new Float32Array([
+                    -1, -1, 1, -1, -1, 1, 1, 1
+                ]);
+                
+                const buffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+                gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+                
+                const positionLocation = gl.getAttribLocation(shaderProgram, 'position');
+                gl.enableVertexAttribArray(positionLocation);
+                gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+            }
+        }
+
+        function createShader(type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Shader compilation error:', gl.getShaderInfoLog(shader));
+                alert('Shader compilation error: ' + gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            
+            return shader;
+        }
+
+        function createProgram(vertexShader, fragmentShader) {
+            if (!vertexShader || !fragmentShader) return null;
+            
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Program linking error:', gl.getProgramInfoLog(program));
+                alert('Program linking error: ' + gl.getProgramInfoLog(program));
+                gl.deleteProgram(program);
+                return null;
+            }
+            
+            return program;
+        }
+
+        function animate() {
+            if (shaderProgram) {
+                analyzeAudioFeatures();
+                updateAudioTexture();
+                updateFrequencyBars();
+                drawAdvancedWaveform();
+                
+                gl.useProgram(shaderProgram);
+                
+                let audioLevel = 0, bassLevel = 0, trebleLevel = 0;
+                
+                if (analyser) {
+                    // Calculate audio levels based on mode
+                    switch (audioMode) {
+                        case 'music':
+                            bassLevel = getFrequencyRange(0, 10) / 255.0;
+                            trebleLevel = getFrequencyRange(50, 128) / 255.0;
+                            audioLevel = (bassLevel + trebleLevel) * 0.5;
+                            break;
+                        case 'voice':
+                            audioLevel = getFrequencyRange(10, 50) / 255.0;
+                            bassLevel = audioLevel * 0.5;
+                            trebleLevel = audioLevel * 0.7;
+                            break;
+                        default:
+                            audioLevel = getAverageFrequency() / 255.0;
+                            bassLevel = getFrequencyRange(0, 20) / 255.0;
+                            trebleLevel = getFrequencyRange(40, 128) / 255.0;
+                    }
+                }
+                
+                // Set uniforms
+                const timeLocation = gl.getUniformLocation(shaderProgram, 'u_time');
+                const resolutionLocation = gl.getUniformLocation(shaderProgram, 'u_resolution');
+                const audioLevelLocation = gl.getUniformLocation(shaderProgram, 'u_audioLevel');
+                const bassLevelLocation = gl.getUniformLocation(shaderProgram, 'u_bassLevel');
+                const trebleLevelLocation = gl.getUniformLocation(shaderProgram, 'u_trebleLevel');
+                const spectralCentroidLocation = gl.getUniformLocation(shaderProgram, 'u_spectralCentroid');
+                const energyLevelLocation = gl.getUniformLocation(shaderProgram, 'u_energyLevel');
+                const beatDetectedLocation = gl.getUniformLocation(shaderProgram, 'u_beatDetected');
+                const onsetDetectedLocation = gl.getUniformLocation(shaderProgram, 'u_onsetDetected');
+                const frequencyTextureLocation = gl.getUniformLocation(shaderProgram, 'u_frequencyTexture');
+                
+                if (timeLocation) gl.uniform1f(timeLocation, performance.now() / 1000.0);
+                if (resolutionLocation) gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+                if (audioLevelLocation) gl.uniform1f(audioLevelLocation, audioLevel);
+                if (bassLevelLocation) gl.uniform1f(bassLevelLocation, bassLevel);
+                if (trebleLevelLocation) gl.uniform1f(trebleLevelLocation, trebleLevel);
+                if (spectralCentroidLocation) gl.uniform1f(spectralCentroidLocation, spectralCentroid);
+                if (energyLevelLocation) gl.uniform1f(energyLevelLocation, energyLevel);
+                if (beatDetectedLocation) gl.uniform1f(beatDetectedLocation, beatDetected);
+                if (onsetDetectedLocation) gl.uniform1f(onsetDetectedLocation, onsetDetected);
+                
+                // Bind frequency texture
+                if (frequencyTextureLocation) {
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(gl.TEXTURE_2D, audioTexture);
+                    gl.uniform1i(frequencyTextureLocation, 0);
+                }
+                
+                // Draw
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            }
+            
+            requestAnimationFrame(animate);
+        }
+
+        function getAverageFrequency() {
+            let sum = 0;
+            for (let i = 0; i < frequencyData.length; i++) {
+                sum += frequencyData[i];
+            }
+            return sum / frequencyData.length;
+        }
+
+        function getFrequencyRange(start, end) {
+            let sum = 0;
+            let count = 0;
+            for (let i = start; i < Math.min(end, frequencyData.length); i++) {
+                sum += frequencyData[i];
+                count++;
+            }
+            return count > 0 ? sum / count : 0;
+        }
+
+        // Audio control functions
+        async function startMicrophone() {
+            try {
+                // Resume audio context if suspended
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                
+                if (microphone) {
+                    microphone.disconnect();
+                }
+                
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                analyser.connect(gainNode);
+                isPlaying = true;
+            } catch (error) {
+                console.error('Microphone access denied:', error);
+                alert('Microphone access denied. Please check your browser settings.');
+            }
+        }
+
+        function loadAudioFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    if (audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                    }
+                    
+                    const arrayBuffer = e.target.result;
+                    audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    setupAudioSource();
+                    
+                    // Auto-play on mobile after user interaction
+                    if (isMobileDevice()) {
+                        setTimeout(() => {
+                            if (!isPlaying) {
+                                togglePlayback();
+                            }
+                        }, 100);
+                    }
+                } catch (error) {
+                    console.error('Audio decoding error:', error);
+                    alert('Error loading audio file. Please try a different format.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        function setupAudioSource() {
+            if (audioSource) {
+                audioSource.disconnect();
+                audioSource = null;
+            }
+            
+            audioSource = audioContext.createBufferSource();
+            audioSource.buffer = audioBuffer;
+            audioSource.connect(analyser);
+            analyser.connect(gainNode);
+            audioSource.loop = true;
+            
+            // Handle ended event
+            audioSource.onended = () => {
+                isPlaying = false;
+            };
+        }
+
+        async function togglePlayback() {
+            try {
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+                
+                if (audioBuffer && !isPlaying) {
+                    setupAudioSource();
+                    audioSource.start();
+                    isPlaying = true;
+                } else if (isPlaying && audioSource) {
+                    audioSource.stop();
+                    isPlaying = false;
+                }
+            } catch (error) {
+                console.error('Playback error:', error);
+                isPlaying = false;
+            }
+        }
+
+        function stopPlayback() {
+            if (audioSource) {
+                try {
+                    audioSource.stop();
+                } catch (error) {
+                    console.error('Stop error:', error);
+                }
+                audioSource = null;
+            }
+            if (microphone) {
+                microphone.disconnect();
+                microphone = null;
+            }
+            isPlaying = false;
+        }
+
+        function setVolume(value) {
+            if (gainNode) {
+                const volume = value / 100.0;
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            }
+        }
+
+        function setAudioMode(mode) {
+            audioMode = mode;
+            document.querySelectorAll('.control-group .button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // Import/Export functions
+        function importShader(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('shaderCode').value = e.target.result;
+                compileShader();
+            };
+            reader.readAsText(file);
+        }
+
+        function exportShader() {
+            const shaderCode = document.getElementById('shaderCode').value;
+            const blob = new Blob([shaderCode], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentShader || 'shader'}.glsl`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        async function importFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('shaderCode').value = text;
+                compileShader();
+            } catch (error) {
+                console.error('Clipboard access denied:', error);
+                alert('Clipboard access denied. Please paste manually.');
+            }
+        }
+
+        async function exportToClipboard() {
+            try {
+                const shaderCode = document.getElementById('shaderCode').value;
+                await navigator.clipboard.writeText(shaderCode);
+                alert('Shader code copied to clipboard!');
+            } catch (error) {
+                console.error('Clipboard access denied:', error);
+                alert('Could not copy to clipboard. Please copy manually.');
+            }
+        }
+
+        // UI functions
+        function toggleSidebar() {
+            sidebarVisible = !sidebarVisible;
+            document.getElementById('sidebar').classList.toggle('hidden', !sidebarVisible);
+        }
+
+        function enterPresentationMode() {
+            isPresentationMode = true;
+            document.getElementById('app').classList.add('presentation-mode');
+            document.getElementById('presentationOverlay').classList.remove('hidden');
+        }
+
+        function exitPresentationMode() {
+            isPresentationMode = false;
+            document.getElementById('app').classList.remove('presentation-mode');
+            document.getElementById('presentationOverlay').classList.add('hidden');
+        }
+
+        function handleKeyDown(event) {
+            if (isPresentationMode && event.code === 'Space') {
+                event.preventDefault();
+                startPresentationAudio();
+            }
+            if (event.code === 'Escape' && isPresentationMode) {
+                exitPresentationMode();
+            }
+        }
+
+        function handleCanvasClick(event) {
+            if (isPresentationMode) {
+                event.preventDefault();
+                startPresentationAudio();
+            }
+        }
+
+        async function startPresentationAudio() {
+            document.getElementById('presentationOverlay').classList.add('hidden');
+            
+            try {
+                if (audioBuffer) {
+                    await togglePlayback();
+                } else {
+                    await startMicrophone();
+                }
+            } catch (error) {
+                console.error('Error starting presentation audio:', error);
+            }
+        }
+
+        // Initialize the app when the page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
