@@ -1,0 +1,20 @@
+Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+
+Copyright © 2025 Daniel Sandner
+
+The scientific papers and textual materials located in the `papers/` directory of this repository and other documentation repositories are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License.
+
+You are free to:
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material for any purpose, even commercially
+
+Under the following terms:
+- Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+- ShareAlike — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
+
+To view a copy of this license, visit [https://creativecommons.org/licenses/by-sa/4.0/](https://creativecommons.org/licenses/by-sa/4.0/)
+
+For citation and attribution, please refer to the individual paper metadata or README links with DOI once available.
+
+Date: September 10, 2025
+Author: Daniel Sandner
