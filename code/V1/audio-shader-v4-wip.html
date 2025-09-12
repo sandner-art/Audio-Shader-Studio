@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Shader Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        .header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .button.active {
+            background: rgba(0, 122, 255, 0.6);
+            border-color: rgba(0, 122, 255, 0.8);
+        }
+
+        .button.primary {
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            border: none;
+        }
+
+        .button.small {
+            padding: 6px 10px;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .slider {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            margin: 10px 0;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007AFF;
+            cursor: pointer;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .slider-row label {
+            font-size: 11px;
+            color: #aaa;
+            min-width: 80px;
+        }
+
+        .slider-row .slider {
+            margin: 0;
+            flex: 1;
+        }
+
+        .slider-row .value {
+            font-size: 11px;
+            color: #888;
+            min-width: 30px;
+            text-align: right;
+        }
+
+        .shader-category {
+            margin-bottom: 16px;
+        }
+
+        .category-header {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .shader-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .shader-item {
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .shader-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .shader-item.active {
+            background: rgba(0, 122, 255, 0.3);
+            border-color: rgba(0, 122, 255, 0.5);
+        }
+
+        .shader-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .shader-description {
+            font-size: 11px;
+            color: #888;
+            line-height: 1.3;
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+
+        .canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #shaderCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #backgroundImage {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .toggle-sidebar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 101;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .presentation-mode .sidebar,
+        .presentation-mode .toggle-sidebar {
+            display: none;
+        }
+
+        .presentation-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 200;
+        }
+
+        .presentation-overlay h2 {
+            margin-bottom: 16px;
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        .presentation-overlay p {
+            color: #888;
+            margin-bottom: 24px;
+        }
+
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .audio-input {
+            display: none;
+        }
+
+        .advanced-waveform {
+            height: 120px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .waveform-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .frequency-bars {
+            display: flex;
+            height: 60px;
+            align-items: end;
+            gap: 1px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+
+        .freq-bar {
+            flex: 1;
+            background: linear-gradient(to top, #007AFF, #5856D6);
+            border-radius: 1px;
+            min-height: 2px;
+            transition: height 0.1s ease;
+        }
+
+        .audio-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 8px 0;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .audio-info span {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible::after {
+            content: '▼';
+            float: right;
+            transition: transform 0.2s ease;
+        }
+
+        .collapsible.collapsed::after {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 320px;
+            }
+            
+            .toggle-sidebar {
+                top: 10px;
+                left: 10px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="app" id="app">
+        <div class="sidebar" id="sidebar">
+            <div class="header">
+                <div class="logo">Audio Shader Studio</div>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <div class="control-label">Audio Mode</div>
+                    <button class="button active" onclick="setAudioMode('normal')">Normal</button>
+                    <button class="button" onclick="setAudioMode('music')">Music</button>
+                    <button class="button" onclick="setAudioMode('voice')">Voice</button>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Audio Source</div>
+                    <input type="file" id="audioFile" class="audio-input" accept="audio/*" onchange="loadAudioFile(this)">
+                    <button class="button" onclick="document.getElementById('audioFile').click()">Load Audio File</button>
+                    <button class="button" onclick="startMicrophone()">Use Microphone</button>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Playback</div>
+                    <div class="audio-controls">
+                        <button class="button" onclick="togglePlayback()">Play/Pause</button>
+                        <button class="button" onclick="stopPlayback()">Stop</button>
+                    </div>
+                    <input type="range" class="slider" id="volumeSlider" min="0" max="100" value="50" oninput="setVolume(this.value)">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label collapsible" onclick="toggleCollapsible(this)">Audio Sensitivity</div>
+                    <div class="collapsible-content">
+                        <div class="slider-row">
+                            <label>Beat Sens:</label>
+                            <input type="range" class="slider" id="beatSensitivity" min="0.5" max="3.0" step="0.1" value="1.3" oninput="updateSensitivity()">
+                            <span class="value" id="beatSensValue">1.3</span>
+                        </div>
+                        <div class="slider-row">
+                            <label>Bass Gain:</label>
+                            <input type="range" class="slider" id="bassGain" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateSensitivity()">
+                            <span class="value" id="bassGainValue">1.0</span>
+                        </div>
+                        <div class="slider-row">
+                            <label>Treble Gain:</label>
+                            <input type="range" class="slider" id="trebleGain" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateSensitivity()">
+                            <span class="value" id="trebleGainValue">1.0</span>
+                        </div>
+                        <div class="slider-row">
+                            <label>Energy Mult:</label>
+                            <input type="range" class="slider" id="energyMultiplier" min="0.1" max="5.0" step="0.1" value="1.0" oninput="updateSensitivity()">
+                            <span class="value" id="energyMultValue">1.0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label collapsible" onclick="toggleCollapsible(this)">Audio Visualization</div>
+                    <div class="collapsible-content">
+                        <div class="advanced-waveform">
+                            <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+                        </div>
+                        <div class="frequency-bars" id="frequencyBars"></div>
+                        <div class="audio-info" id="audioInfo">
+                            <span>Beat: <span id="beatInfo">-</span></span>
+                            <span>Onset: <span id="onsetInfo">-</span></span>
+                            <span>Energy: <span id="energyInfo">-</span></span>
+                            <span>Centroid: <span id="centroidInfo">-</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Background</div>
+                    <input type="file" id="backgroundFile" class="audio-input" accept="image/*" onchange="loadBackgroundImage(this)">
+                    <button class="button small" onclick="document.getElementById('backgroundFile').click()">Load Image</button>
+                    <button class="button small" onclick="clearBackground()">Clear</button>
+                    <div class="slider-row">
+                        <label>Opacity:</label>
+                        <input type="range" class="slider" id="backgroundOpacity" min="0" max="100" value="30" oninput="setBackgroundOpacity(this.value)">
+                        <span class="value" id="bgOpacityValue">30</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Shader Library</div>
+                    <div class="shader-list" id="shaderList"></div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label collapsible" onclick="toggleCollapsible(this)">Shader Editor</div>
+                    <div class="collapsible-content">
+                        <textarea id="shaderCode" placeholder="Enter fragment shader code here..."></textarea>
+                        <button class="button primary" onclick="compileShader()">Compile Shader</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label collapsible" onclick="toggleCollapsible(this)">Import/Export</div>
+                    <div class="collapsible-content">
+                        <input type="file" id="shaderFile" class="audio-input" accept=".glsl,.frag,.txt" onchange="importShader(this)">
+                        <button class="button small" onclick="document.getElementById('shaderFile').click()">Import Shader</button>
+                        <button class="button small" onclick="exportShader()">Export Shader</button>
+                        <button class="button small" onclick="importFromClipboard()">From Clipboard</button>
+                        <button class="button small" onclick="exportToClipboard()">To Clipboard</button>
+                        <button class="button small" onclick="loadShaderFolder()">Load Folder</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <button class="button primary" onclick="enterPresentationMode()">Presentation Mode</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+            <div class="canvas-container">
+                <img id="backgroundImage" alt="">
+                <canvas id="shaderCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="presentation-overlay hidden" id="presentationOverlay">
+            <h2>Presentation Mode</h2>
+            <p>Click anywhere, press spacebar, or touch to start audio</p>
+            <button class="button primary" onclick="exitPresentationMode()">Exit Presentation</button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let gl, canvas, shaderProgram, backgroundTexture;
+        let audioContext, analyser, microphone, audioSource, audioBuffer, gainNode;
+        let frequencyData, timeData, previousFrequencyData;
+        let isPlaying = false;
+        let isPresentationMode = false;
+        let currentShader = '';
+        let audioMode = 'normal';
+        let sidebarVisible = true;
+        let waveformCanvas, waveformCtx;
+        let backgroundImage = null;
+
+        // Advanced audio analysis
+        let spectralCentroid = 0;
+        let energyLevel = 0;
+        let beatDetected = 0;
+        let onsetDetected = 0;
+        let beatHistory = [];
+        let energyHistory = [];
+
+        // Audio sensitivity controls
+        let beatSensitivity = 1.3;
+        let bassGain = 1.0;
+        let trebleGain = 1.0;
+        let energyMultiplier = 1.0;
+
+        // 3D and advanced uniforms
+        let cameraPosition = [0.0, 0.0, 3.0];
+        let cameraTarget = [0.0, 0.0, 0.0];
+
+        // Shader library structure
+        const shaderLibrary = {
+            'Basic Effects': {
+                'Basic Wave': {
+                    description: 'Simple sine wave with audio reactivity',
+                    code: `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_spectralCentroid;
+uniform float u_energyLevel;
+uniform float u_beatDetected;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec3 color = vec3(0.0);
+    
+    float wave = sin(uv.x * 10.0 + u_time * 2.0 + u_beatDetected * 3.14) * u_audioLevel;
+    float energy = u_energyLevel * 0.5 + 0.5;
+    
+    color += vec3(wave * energy, uv.y * u_spectralCentroid, sin(u_time + u_trebleLevel * 5.0) * 0.5 + 0.5);
+    
+    gl_FragColor = vec4(color, 1.0);
+}`
+                },
+                'Audio Spectrum Bars': {
+                    description: 'Classic frequency spectrum visualization',
+                    code: `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_spectralCentroid;
+uniform float u_energyLevel;
+uniform sampler2D u_frequencyTexture;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    
+    float freq = texture2D(u_frequencyTexture, vec2(uv.x, 0.5)).r;
+    
+    vec3 color = vec3(0.0);
+    float barHeight = freq * u_energyLevel * 2.0;
+    
+    if (uv.y < barHeight) {
+        if (uv.x < 0.33) {
+            color = mix(vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 0.0), uv.y / barHeight);
+        } else if (uv.x < 0.66) {
+            color = mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 1.0), uv.y / barHeight);
+        } else {
+            color = mix(vec3(1.0, 0.0, 1.0), vec3(0.0, 1.0, 1.0), uv.y / barHeight);
+        }
+        color *= (0.7 + u_spectralCentroid * 0.3);
+    }
+    
+    color += vec3(0.05, 0.05, 0.1) * (1.0 - uv.y);
+    
+    gl_FragColor = vec4(color, 1.0);
+}`
+                }
+            },
+            'Geometric Patterns': {
+                'Circular Waveform': {
+                    description: 'Frequency data mapped to circular coordinates',
+                    code: `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_beatDetected;
+uniform float u_onsetDetected;
+uniform sampler2D u_frequencyTexture;
+
+void main() {
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+    
+    float angle = atan(uv.y, uv.x) + 3.14159;
+    float radius = length(uv);
+    
+    float freqSample = texture2D(u_frequencyTexture, vec2(angle / (2.0 * 3.14159), 0.5)).r;
+    
+    float waveRadius = 0.3 + freqSample * u_audioLevel * 0.4;
+    float thickness = 0.02 + u_beatDetected * 0.01;
+    
+    float wave = smoothstep(waveRadius - thickness, waveRadius, radius) - 
+                smoothstep(waveRadius, waveRadius + thickness, radius);
+    
+    vec3 color = vec3(0.0);
+    if (wave > 0.0) {
+        float hue = angle / (2.0 * 3.14159) + u_time * 0.1;
+        color = vec3(
+            sin(hue * 6.28) * 0.5 + 0.5,
+            sin(hue * 6.28 + 2.09) * 0.5 + 0.5,
+            sin(hue * 6.28 + 4.19) * 0.5 + 0.5
+        ) * (0.7 + u_onsetDetected * 0.3);
+    }
+    
+    float centerGlow = exp(-radius * 3.0) * u_bassLevel;
+    color += vec3(centerGlow * 0.2, centerGlow * 0.4, centerGlow * 0.8);
+    
+    gl_FragColor = vec4(color, 1.0);
+}`
+                },
+                'Spiral Spectrum': {
+                    description: 'Archimedean spiral with frequency mapping',
+                    code: `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_spectralCentroid;
+uniform float u_energyLevel;
+uniform sampler2D u_frequencyTexture;
+
+void main() {
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+    
+    float angle = atan(uv.y, uv.x) + 3.14159;
+    float radius = length(uv);
+    
+    float spiralTightness = 0.5 + u_spectralCentroid * 0.3;
+    float spiralRadius = angle * spiralTightness * 0.1;
+    
+    float freqIndex = mod(spiralRadius * 10.0, 1.0);
+    float freq = texture2D(u_frequencyTexture, vec2(freqIndex, 0.5)).r;
+    
+    float spiralDist = abs(radius - spiralRadius);
+    float spiralWidth = 0.015 + freq * u_energyLevel * 0.02;
+    
+    float spiral = smoothstep(spiralWidth, 0.0, spiralDist);
+    
+    vec3 color = vec3(0.0);
+    if (spiral > 0.0) {
+        float colorPhase = freqIndex + u_time * 0.2;
+        color = vec3(
+            sin(colorPhase * 6.28) * 0.4 + 0.6,
+            sin(colorPhase * 6.28 + 2.09) * 0.4 + 0.6,
+            sin(colorPhase * 6.28 + 4.19) * 0.4 + 0.6
+        ) * spiral * (0.8 + freq * 0.2);
+    }
+    
+    color += vec3(0.05, 0.02, 0.1) * (1.0 - radius);
+    
+    gl_FragColor = vec4(color, 1.0);
+}`
+                }
+            },
+            '3D & Raymarching': {
+                'Raymarched Sphere': {
+                    description: '3D sphere with audio-driven deformation',
+                    code: `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_beatDetected;
+uniform vec3 u_cameraPos;
+uniform vec3 u_cameraTarget;
+
+float sdSphere(vec3 p, float r) {
+    return length(p) - r;
+}
+
+float map(vec3 p) {
+    float sphere = sdSphere(p, 1.0 + u_bassLevel * 0.3);
+    
+    // Audio-driven noise
+    float noise = sin(p.x * 5.0 + u_time) * sin(p.y * 5.0 + u_time * 0.7) * sin(p.z * 5.0 + u_time * 1.3);
+    sphere += noise * u_audioLevel * 0.2;
+    
+    return sphere;
+}
+
+vec3 getNormal(vec3 p) {
+    const float h = 0.001;
+    return normalize(vec3(
+        map(p + vec3(h, 0, 0)) - map(p - vec3(h, 0, 0)),
+        map(p + vec3(0, h, 0)) - map(p - vec3(0, h, 0)),
+        map(p + vec3(0, 0, h)) - map(p - vec3(0, 0, h))
+    ));
+}
+
+void main() {
+    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
+    
+    vec3 ro = u_cameraPos;
+    vec3 rd = normalize(vec3(uv, -1.0));
+    
+    float t = 0.0;
+    for (int i = 0; i < 64; i++) {
+        vec3 p = ro + rd * t;
+        float d = map(p);
+        
+        if (d < 0.001 || t > 10.0) break;
+        t += d * 0.5;
+    }
+    
+    vec3 color = vec3(0.0);
+    
+    if (t < 10.0) {
+        vec3 p = ro + rd * t;
+        vec3 normal = getNormal(p);
+        
+        float lighting = max(0.0, dot(normal, normalize(vec3(1.0, 1.0, 1.0))));
+        
+        color = vec3(
+            0.5 + u_bassLevel * 0.5,
+            0.3 + u_trebleLevel * 0.7,
+            0.8 + u_audioLevel * 0.2
+        ) * lighting;
+        
+        // Beat flash
+        color += vec3(1.0) * u_beatDetected * 0.3;
+    }
+    
+    gl_FragColor = vec4(color, 1.0);
+}`
+                },
+                'Audio Tunnel': {
+                    description: '3D tunnel with audio-reactive geometry',
+                    code: `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_audioLevel;
+uniform float u_bassLevel;
+uniform float u_trebleLevel;
+uniform float u_energyLevel;
+uniform sampler2D u_frequencyTexture;
+
+void main() {
+    vec
