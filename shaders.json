@@ -1,0 +1,34 @@
+{
+  "Image Effects": {
+    "Noir Inkbleed": {
+      "description": "Procedural ink splotches bleed across the screen, revealing a high-contrast version of the background image. Bass controls the spread, beats flash red, and treble adds signal jitter.",
+      "path": "shaders/image-effects/noir-inkbleed.glsl"
+    },
+    "Wavy Backdrop": {
+      "description": "Deforms the background image with an audio-reactive wave. A modern motion graphics shader that deforms, color-shifts, and degrades the background image in response to multiple audio features.",
+      "path": "shaders/image-effects/wavy-backdrop.glsl"
+    }
+  },
+  "Geometric Patterns": {
+    "Fluidic Nebulae": {
+      "description": "Simulates a turbulent fluid or gas cloud. The flow is controlled by low-frequency noise (for a smoky feel), while audio features inject energy and color. Bass creates large-scale warping, treble adds fine ripples, and beats cause blooms of vibrant color.",
+      "path": "shaders/geometric-patterns/fluidic-1.glsl"
+    }
+  },
+  "Glitch FX": {
+    "Data Stream Glitch": {
+      "description": "Visualizes the audio as a data stream or computer interface. It uses the frequency texture for the main data visualization, while onsets and beats trigger digital effects,",
+      "path": "shaders/glitches/datastream-1.glsl"
+    },
+    "Analog Signal Failure": {
+      "description": "Overhaul of Data Stream Glitch to simulate a full-scale analog signal collapse, like a failing CRT monitor or a damaged CCTV feed. Every major audio feature is mapped to a specific type of visual artifact, creating a reactive and chaotic experience.",
+      "path": "shaders/glitches/datastream-2.glsl"
+    }    
+  },  
+  "3D & Raymarching": {
+    "Raymarched Sphere Liquid": {
+      "description": "3D sphere with audio-driven deformation.",
+      "path": "shaders/3d/raymarched-sphere-2.glsl"
+    }
+  }
+}
