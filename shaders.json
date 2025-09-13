@@ -12,7 +12,15 @@
     "CRT Glitch EMP": {
       "description": "Cinematic effect effect designed to work with a background image.",
       "path_v2": "shaders/image-effects/crt-emp-v2.glsl" 
-    },        
+    }, 
+    "CRT Ken B": {
+      "description": "Cinematic CRT effect Ken B effect using a background image.",
+      "path_v2": "shaders/image-effects/crt-kenb-v2.glsl" 
+    },   
+    "CRT Monolith Matrix": {
+      "description": "Complex glitch CRT effect designed to work with a background image.",
+      "path_v2": "shaders/image-effects/crt-matrix-v2.glsl"
+    },                  
     "Wavy Backdrop": {
       "description": "Deforms the background image with an audio-reactive wave. A modern motion graphics shader that deforms, color-shifts, and degrades the background image in response to multiple audio features.",
       "path": "shaders/image-effects/wavy-backdrop.glsl"
