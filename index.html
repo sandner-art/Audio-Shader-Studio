@@ -1423,6 +1423,10 @@ async function init() {
                         if (!backgroundTexture) {
                             backgroundTexture = gl.createTexture();
                         }
+
+                        // This tells WebGL to flip the image vertically upon loading.
+                        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+                                                
                         gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
                         // Upload the image data to the texture
                         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
