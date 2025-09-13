@@ -60,6 +60,10 @@
       "description": "A 3D orb whose surface is a topographical map of the audio spectrum. Bass controls its size, treble creates a corona, and beats trigger a nova flash.",
       "path": "shaders/3d/spectral-orb.glsl"
     },
+    "Plasma Cloud": {
+      "description": "A pseudo 3D plasma cloud.",
+      "path_v2": "shaders/3d/plasmacloud-1-v2.glsl"
+    },    
     "Cavern": {
       "description": "A 3D WebGL 2.0 cavern.",
       "path_v2": "shaders/3d/cavern-v2.glsl"
