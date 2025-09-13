@@ -58,7 +58,7 @@
     },
     "Ocean of Ink": {
       "description": "A 3D WebGL 2.0 stylized ocean.",
-      "path_v2": "shaders/3d/ocean-ink.glsl"
+      "path_v2": "shaders/3d/ocean-ink-v2.glsl"
     },    
     "Fractal Cyberspace (WebGL 2.0)": {
       "description": "A true WebGL 2.0 showcase. An infinite fractal structure is filled with volumetric energy clouds created from procedural 3D noise.",
