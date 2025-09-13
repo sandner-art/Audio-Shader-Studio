@@ -23,6 +23,18 @@
       "description": "A minimalist pulse. Prepared for further Morphogenesis & Generative developments.",
       "path": "shaders/geometric-patterns/pulse.glsl"
     },    
+    "Spectrograph Radial": {
+      "description": "A polar plot of frequency data.",
+      "path_v2": "shaders/geometric-patterns/spectrograph-radial.glsl"
+    }, 
+    "HUD Orange": {
+      "description": "A polar plot of frequency data.",
+      "path_v2": "shaders/geometric-patterns/hud-1.glsl"
+    },      
+    "Biogeometry 1": {
+      "description": "A space divided by geometry.",
+      "path_v2": "shaders/geometric-patterns/biogeometry-1.glsl"
+    },     
     "Synthwave Grid": {
       "description": "The classic retro-futuristic landscape. An audio spectrum cityscape rises from an infinite neon grid, flying towards a digital sunset.",
       "path": "shaders/geometric-patterns/synthwave-grid.glsl"
