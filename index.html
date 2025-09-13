@@ -1426,7 +1426,7 @@ async function init() {
 
                         // This tells WebGL to flip the image vertically upon loading.
                         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-                                                
+
                         gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
                         // Upload the image data to the texture
                         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
@@ -1443,8 +1443,13 @@ async function init() {
         }
         
         function clearBackground() {
+            // Clear the HTML image element
             backgroundImageElement.src = '';
             backgroundImageElement.style.opacity = '0';
+            
+            // Tell WebGL to forget about the old texture.
+            // (We don't need to delete it from the GPU, just stop using it).
+            backgroundTexture = null;
         }
         
         function setBackgroundOpacity(value) {
