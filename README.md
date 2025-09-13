@@ -25,7 +25,7 @@ The application utilizes the Web Audio API for real-time audio analysis:
 
 ### Shader Environment
 
-Built on WebGL 1.0 with GLSL ES 1.0 fragment shaders. The rendering pipeline processes full-screen quad geometry with audio-derived uniform parameters updated at display refresh rate (typically 60 Hz).
+Built on WebGL 1.0 with GLSL ES 1.0 fragment shaders (WebGL 2.0 support is also experimentally implemented, the app will detect the best version available). The rendering pipeline processes full-screen quad geometry with audio-derived uniform parameters updated at display refresh rate (typically 60 Hz).
 
 ## Implemented Audio Uniforms
 
