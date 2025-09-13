@@ -13,7 +13,16 @@
     "Fluidic Nebulae": {
       "description": "Simulates a turbulent fluid or gas cloud. The flow is controlled by low-frequency noise (for a smoky feel), while audio features inject energy and color. Bass creates large-scale warping, treble adds fine ripples, and beats cause blooms of vibrant color.",
       "path": "shaders/geometric-patterns/fluidic-1.glsl"
+    },
+    "Glyph Modulator": {
+      "description": "A minimalist glyph smoothly morphs between a circle, square, and triangle. Audio levels control the shape while beats trigger a chromatic glitch pulse.",
+      "path": "shaders/geometric-patterns/glyph-modulator.glsl"
+    },
+    "Synthwave Grid": {
+      "description": "The classic retro-futuristic landscape. An audio spectrum cityscape rises from an infinite neon grid, flying towards a digital sunset.",
+      "path": "shaders/geometric-patterns/synthwave-grid.glsl"
     }
+    
   },
   "Glitch FX": {
     "Data Stream Glitch": {
@@ -29,6 +38,14 @@
     "Raymarched Sphere Liquid": {
       "description": "3D sphere with audio-driven deformation.",
       "path": "shaders/3d/raymarched-sphere-2.glsl"
-    }
+    },
+    "Spectral Orb": {
+      "description": "A 3D orb whose surface is a topographical map of the audio spectrum. Bass controls its size, treble creates a corona, and beats trigger a nova flash.",
+      "path": "shaders/3d/spectral-orb.glsl"
+    },
+    "Omni-Visualizer v2": {
+      "description": "A major upgrade. The data-sphere is contained by bass-driven energy rings and a treble-driven particle field. Onsets cause glitches and beats trigger solar flares.",
+      "path": "shaders/3d/omni-visualizer-v2.glsl"
+    }        
   }
 }
