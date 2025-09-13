@@ -555,6 +555,7 @@
         // 3D and advanced uniforms
         let cameraPosition = [0.0, 0.0, 3.0];
         let cameraTarget = [0.0, 0.0, 0.0];
+        let glVersion = 1; // WEBGL GLSL Default to 1, will be updated on success
 
         // Shader library structure
         const demoShaders = {
@@ -844,7 +845,7 @@ void main() {
         let shaderLibrary = {};
 
         // <<<--- PUT THE NEW FUNCTION HERE ---<<<
-        async function loadAndMergeShadersFromManifest() {
+async function loadAndMergeShadersFromManifest() {
             try {
                 const manifestResponse = await fetch('shaders.json');
                 if (!manifestResponse.ok) {
@@ -860,9 +861,17 @@ void main() {
                     }
                     for (const name in manifest[category]) {
                         const shaderInfo = manifest[category][name];
-                        const promise = fetch(shaderInfo.path)
+                        
+                        // --- NEW LOGIC: Choose the correct shader path ---
+                        let shaderPath = shaderInfo.path; // Default to WebGL 1 path
+                        if (glVersion === 2 && shaderInfo.path_v2) {
+                            shaderPath = shaderInfo.path_v2; // Use WebGL 2 path if available
+                            console.log(`Loading WebGL 2.0 version for: ${name}`);
+                        }
+
+                        const promise = fetch(shaderPath)
                             .then(response => {
-                                if (!response.ok) throw new Error(`Failed to fetch ${shaderInfo.path}`);
+                                if (!response.ok) throw new Error(`Failed to fetch ${shaderPath}`);
                                 return response.text();
                             })
                             .then(code => {
@@ -880,58 +889,62 @@ void main() {
                 console.error("Could not load or merge external shaders:", error);
             }
         }
-
         // Initialize the application
 async function init() {
-            // --- Standard initializations ---
             canvas = document.getElementById('shaderCanvas');
             backgroundImageElement = document.getElementById('backgroundImage');
-            gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
             
+            // --- NEW: WebGL 2.0 Support with Fallback ---
+            try {
+                // First, try to get a WebGL 2.0 context
+                gl = canvas.getContext('webgl2', { alpha: true });
+                if (gl) {
+                    glVersion = 2;
+                    console.log("WebGL 2.0 context successfully created.");
+                } else {
+                    // This 'else' will trigger if the browser supports the API but fails to create a context
+                    throw new Error("WebGL 2 context creation failed.");
+                }
+            } catch (e) {
+                // If the try block fails, fall back to WebGL 1.0
+                console.warn("WebGL 2.0 not available, falling back to WebGL 1.0.", e);
+                gl = canvas.getContext('webgl', { alpha: true });
+                glVersion = 1;
+            }
+
             if (!gl) {
-                alert('WebGL not supported');
+                alert('WebGL is not supported on this device.');
                 return;
             }
+
+            // --- The rest of the init function remains the same ---
+            gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
             waveformCanvas = document.getElementById('waveformCanvas');
             waveformCtx = waveformCanvas.getContext('2d');
             
-            // --- NEW SHADER LOADING WORKFLOW ---
-            
-            // 1. Start by making a deep copy of the built-in demo shaders.
-            // This is our baseline and ensures the app can work offline.
             shaderLibrary = JSON.parse(JSON.stringify(demoShaders));
-            
-            // 2. Fetch and merge the shaders from your shaders/ folder via the manifest.
-            // We 'await' this to ensure it completes before we build the UI.
             await loadAndMergeShadersFromManifest();
-            
-            // 3. Now that the library is fully combined, populate the UI list.
-            // This must happen AFTER the await.
             populateShaderList();
             
-            // --- Resume normal initialization ---
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
             
             initAudio();
             createAudioTexture();
             
-            // Load a default shader from the newly populated library
-            // This ensures the first shader is one of your reliable demos.
             loadShader('Basic Effects', 'Basic Wave');
             
-            // Set up presentation mode event listeners
             document.addEventListener('keydown', handleKeyDown);
             canvas.addEventListener('click', handleCanvasClick);
             canvas.addEventListener('touchstart', handleCanvasClick);
             
-            // Set initial state for collapsible sections
             document.querySelectorAll('.collapsible-content').forEach(el => {
                 el.style.maxHeight = el.scrollHeight + "px";
             });
             
-            // Start the rendering loop
             animate();
         }
 
@@ -1135,22 +1148,53 @@ async function init() {
             }
         }
 
-        function compileShader() {
+function compileShader() {
             const fragmentShaderSource = document.getElementById('shaderCode').value;
-            const vertexShaderSource = `attribute vec4 position; void main() { gl_Position = position; }`;
+            
+            // --- NEW: Smart Vertex Shader Generation ---
+            let vertexShaderSource;
+            
+            // Check if the fragment shader is a WebGL 2.0 (GLSL 3.00 es) shader.
+            if (fragmentShaderSource.trim().startsWith("#version 300 es")) {
+                console.log("Compiling with WebGL 2.0 vertex shader.");
+                // If so, create a matching WebGL 2.0 vertex shader.
+                // Note: `attribute` is replaced with `in`.
+                vertexShaderSource = `#version 300 es
+                    in vec4 position;
+                    void main() {
+                        gl_Position = position;
+                    }
+                `;
+            } else {
+                console.log("Compiling with WebGL 1.0 vertex shader.");
+                // Otherwise, use the classic WebGL 1.0 vertex shader.
+                vertexShaderSource = `
+                    attribute vec4 position;
+                    void main() {
+                        gl_Position = position;
+                    }
+                `;
+            }
             
             const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
             const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
             
-            if (shaderProgram) gl.deleteProgram(shaderProgram);
+            if (shaderProgram) {
+                gl.deleteProgram(shaderProgram);
+            }
             
             shaderProgram = createProgram(vertexShader, fragmentShader);
             
             if (shaderProgram) {
-                const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+                const positions = new Float32Array([
+                    -1, -1, 1, -1, -1, 1, 1, 1
+                ]);
+                
                 const buffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
                 gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+                
+                // The attribute location logic works for both 'in' and 'attribute'.
                 const positionLocation = gl.getAttribLocation(shaderProgram, 'position');
                 gl.enableVertexAttribArray(positionLocation);
                 gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);

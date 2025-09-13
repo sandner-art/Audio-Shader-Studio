@@ -16,7 +16,8 @@
     },
     "Glyph Modulator": {
       "description": "A minimalist glyph smoothly morphs between a circle, square, and triangle. Audio levels control the shape while beats trigger a chromatic glitch pulse.",
-      "path": "shaders/geometric-patterns/glyph-modulator.glsl"
+      "path": "shaders/geometric-patterns/glyph-modulator.glsl",
+      "path_v2": "shaders/geometric-patterns/glyph-modulator-v2.glsl"
     },
     "Synthwave Grid": {
       "description": "The classic retro-futuristic landscape. An audio spectrum cityscape rises from an infinite neon grid, flying towards a digital sunset.",
@@ -46,6 +47,10 @@
     "Omni-Visualizer v2": {
       "description": "A major upgrade. The data-sphere is contained by bass-driven energy rings and a treble-driven particle field. Onsets cause glitches and beats trigger solar flares.",
       "path": "shaders/3d/omni-visualizer-v2.glsl"
-    }        
+    },
+    "Fractal Cyberspace (WebGL 2.0)": {
+      "description": "A true WebGL 2.0 showcase. An infinite fractal structure is filled with volumetric energy clouds created from procedural 3D noise.",
+      "path_v2": "shaders/3d/fractal-cyberspace-v2.glsl"
+    }            
   }
 }
