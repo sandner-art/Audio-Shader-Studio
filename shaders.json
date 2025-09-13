@@ -4,6 +4,15 @@
       "description": "Procedural ink splotches bleed across the screen, revealing a high-contrast version of the background image. Bass controls the spread, beats flash red, and treble adds signal jitter.",
       "path": "shaders/image-effects/noir-inkbleed.glsl"
     },
+    "Cine-Luxe": {
+      "description": "Multi-layered post-processing effect designed to work with a background image.",
+      "path": "shaders/image-effects/cine-v1.glsl",
+      "path_v2": "shaders/image-effects/cine-v2.glsl" 
+    },    
+    "CRT Glitch EMP": {
+      "description": "Cinematic effect effect designed to work with a background image.",
+      "path_v2": "shaders/image-effects/crt-emp-v2.glsl" 
+    },        
     "Wavy Backdrop": {
       "description": "Deforms the background image with an audio-reactive wave. A modern motion graphics shader that deforms, color-shifts, and degrades the background image in response to multiple audio features.",
       "path": "shaders/image-effects/wavy-backdrop.glsl"

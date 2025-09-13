@@ -545,7 +545,8 @@
         let onsetDetected = 0;
         let beatHistory = [];
         let energyHistory = [];
-
+        let beatCounter = 0;
+        let previousBeatState = 0.0;
         // Audio sensitivity controls
         let beatSensitivity = 1.3;
         let bassGain = 1.0;
@@ -1046,7 +1047,13 @@ async function init() {
             onsetDetected = spectralFlux > 1000 ? 1.0 : 0.0;
             
             previousFrequencyData.set(frequencyData);
-            
+            if (beatDetected > 0.5 && previousBeatState < 0.5) { // Check for the *start* of a beat
+                beatCounter++;
+            }
+            previousBeatState = beatDetected; // Store the state for the next frame
+
+            // When setting uniforms for the shader...
+            gl.uniform1f(gl.getUniformLocation(shaderProgram, 'u_beatCount'), beatCounter);            
             updateAudioInfo();
         }
         
