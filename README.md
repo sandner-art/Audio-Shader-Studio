@@ -41,7 +41,7 @@ The application utilizes the Web Audio API for real-time audio analysis:
 
 ## Shader Creation Guide
 
-For a detailed guide on how to create shaders for this platform, including tips, tricks, and best practices, please see our **[Shader Creation Guide](SHADER_GUIDE.md)**.
+For a detailed guide on how to create shaders for this platform, including tips, tricks, and best practices, please see our **[Shader Creation Guide](docs/SHADER_GUIDE.md)**.
 
 ---
 
