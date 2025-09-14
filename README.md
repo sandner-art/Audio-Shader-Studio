@@ -12,20 +12,38 @@ A real-time audio-reactive shader visualization platform for creative audio anal
 
 Audio Shader Studio implements real-time audio feature extraction and maps these features to GPU shader uniforms, enabling the creation of sophisticated audio-reactive visualizations. The platform supports multiple audio input sources, advanced spectral analysis, and provides a comprehensive set of audio-derived parameters for shader programming.
 
+## Features
+
+- **Real-time Audio Analysis:** Extracts a rich set of audio features, from broad strokes like bass and treble to nuanced data like spectral centroid and beat detection.
+- **Live GLSL Editor:** Write and compile fragment shaders directly in the browser with instant visual feedback.
+- **WebGL 1.0 & 2.0 Support:** The app automatically detects and utilizes the best available WebGL version, supporting both GLSL ES 1.00 and 3.00.
+- **Multi-Source Input:** Load local audio files, use your microphone for live input, or engage with the built-in audio simulator.
+- **Extensive Uniform Library:** A comprehensive set of pre-calculated audio features are passed directly to your shaders, ready to use.
+- **Built-in Shader Library:** Get started immediately with a curated collection of generative and post-processing shaders.
+- **Presentation Mode:** A clean, fullscreen view perfect for VJing, live performances, or installations.
+
 ## Technical Architecture
 
 ### Audio Processing Pipeline
 
 The application utilizes the Web Audio API for real-time audio analysis:
 
-1. **Input Stage**: Audio file loading or microphone capture
-2. **Analysis Stage**: FFT analysis using `AnalyserNode` with 512-point FFT
-3. **Feature Extraction**: Advanced audio feature computation
-4. **GPU Mapping**: Real-time uniform updates to fragment shaders
+1.  **Input Stage**: Audio file loading (`<input type="file">`) or microphone capture (`getUserMedia`).
+2.  **Analysis Stage**: FFT analysis using `AnalyserNode` with a 512-point FFT size.
+3.  **Feature Extraction**: On each animation frame, a suite of audio features are computed from the raw frequency and time-domain data.
+4.  **GPU Mapping**: The extracted features are passed as uniforms to the active fragment shader program.
 
 ### Shader Environment
 
-Built on WebGL 1.0 with GLSL ES 1.0 fragment shaders (WebGL 2.0 support is also experimentally implemented, the app will detect the best version available). The rendering pipeline processes full-screen quad geometry with audio-derived uniform parameters updated at display refresh rate (typically 60 Hz).
+- **Core:** WebGL 1.0 and WebGL 2.0. The application will attempt to initialize a WebGL 2.0 context and gracefully fall back to WebGL 1.0 if it's unavailable.
+- **Language:** GLSL ES 1.00 and GLSL ES 3.00.
+- **Rendering:** A full-screen quad is rendered every frame, with the fragment shader determining the color of each pixel based on the audio-derived uniforms.
+
+## Shader Creation Guide
+
+For a detailed guide on how to create shaders for this platform, including tips, tricks, and best practices, please see our **[Shader Creation Guide](SHADER_GUIDE.md)**.
+
+---
 
 ## Implemented Audio Uniforms
 
@@ -52,7 +70,12 @@ Built on WebGL 1.0 with GLSL ES 1.0 fragment shaders (WebGL 2.0 support is also 
 |---------|------|-------|-------------|
 | `u_energyLevel` | `float` | 0.0-1.0 | Instantaneous energy level (spectral power) |
 | `u_beatDetected` | `float` | 0.0/1.0 | Binary beat detection using energy flux analysis |
-| `u_onsetDetected` | `float` | 0.0/1.0 | Audio onset detection via spectral flux |
+| `u_onsetDetected` | `float` | 0.0/1.0 | Audio onset detection via spectral flux (detects sharp transient sounds like snares or claps) |
+| `u_beatDetected`| `float` | 0.0 or 1.0 | A binary flag that is `1.0` for a single frame when a beat is detected. Ideal for triggering sharp events. |
+| `u_beatCount`| `float` | 0.0+ | **(New)** An integer that increments on every detected beat. Essential for triggering events on specific beat intervals (e.g., every 4th or 8th beat). |
+| `u_frequencyTexture`| `sampler2D`| 256x1 Texture| The entire frequency spectrum, available for detailed analysis and visualization. |
+| `u_timeDomainTexture`| `sampler2D`| 512x1 Texture| The raw audio waveform data for the current buffer. Essential for oscilloscope effects. |
+| `u_backgroundTexture`|`sampler2D`| Image dimensions | The user-loaded background image. Defaults to black if no image is loaded. |
 
 ### Audio Mode Processing
 
@@ -66,7 +89,7 @@ The system implements three specialized processing modes:
 
 ### Fragment Shader Specification
 
-**Language:** GLSL ES 1.0 (OpenGL ES Shading Language)  
+**Language:** GLSL ES 1.0 (OpenGL ES Shading Language), GLSL ES 3.00. 
 **Precision:** `mediump float` recommended for mobile compatibility  
 **Entry Point:** `void main()`  
 **Output:** `gl_FragColor` (vec4)
@@ -196,6 +219,8 @@ The application includes algorithmic generative patterns:
 - Minimize texture lookups in fragment shaders
 - Avoid complex branching in shader code
 - Consider frame rate implications of complex mathematical operations
+    - Be mindful of expensive operations like `pow()`, `sin()`, and `cos()` inside loops.
+    - Raymarching and multi-pass shaders are computationally intensive and may not run smoothly on integrated graphics.
 
 ### Mobile Device Limitations
 
